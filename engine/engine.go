@@ -55,6 +55,10 @@ func Apply(filePath string, rule config.Rule, dryRun bool) error {
 		return nil
 	}
 
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return nil
+	}
+
 	if dryRun {
 		fmt.Printf("[dry-run] %s  →  %s\n", filePath, destPath)
 		return nil
