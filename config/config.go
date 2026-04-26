@@ -23,6 +23,12 @@ type Rule struct {
 }
 
 func Load(path string) (*Config, error) {
+	expanded, err := expandPath(path)
+	if err != nil {
+		return nil, fmt.Errorf("config: could not expand path: %w", err)
+	}
+	path = expanded
+
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -71,7 +77,7 @@ func (cfg *Config) expand() error {
 		expanded, err := expandPath(rule.Dest)
 		if err != nil {
 			return err
-		} 
+		}
 		cfg.Rules[i].Dest = expanded
 	}
 
