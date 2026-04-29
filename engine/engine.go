@@ -11,25 +11,6 @@ import (
 	"github.com/prajwalmandlecha/tidy/config"
 )
 
-func matchesExtension(filePath string, extensions []string) bool {
-	fileName := strings.ToLower(filepath.Base(filePath))
-
-	for _, extension := range extensions {
-		normalized := strings.ToLower(strings.TrimSpace(extension))
-		if normalized == "" {
-			continue
-		}
-		if !strings.HasPrefix(normalized, ".") {
-			normalized = "." + normalized
-		}
-		if strings.HasSuffix(fileName, normalized) {
-			return true
-		}
-	}
-
-	return false
-}
-
 func Matches(filePath string, rule config.Rule) bool {
 	if matchesExtension(filePath, rule.Extensions) {
 		return true
@@ -88,6 +69,25 @@ func Apply(filePath string, rule config.Rule, dryRun bool) error {
 
 	fmt.Printf("moved %s  →  %s\n", filePath, destPath)
 	return nil
+}
+
+func matchesExtension(filePath string, extensions []string) bool {
+	fileName := strings.ToLower(filepath.Base(filePath))
+
+	for _, extension := range extensions {
+		normalized := strings.ToLower(strings.TrimSpace(extension))
+		if normalized == "" {
+			continue
+		}
+		if !strings.HasPrefix(normalized, ".") {
+			normalized = "." + normalized
+		}
+		if strings.HasSuffix(fileName, normalized) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func ProcessFile(filePath string, rules []config.Rule, dryRun bool) error {

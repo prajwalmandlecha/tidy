@@ -13,6 +13,7 @@ import (
 
 const starterConfig = `watch_dirs:
   - ~/Downloads
+  - ~/Pictures
 
 rules:
   - name: Documents
@@ -46,6 +47,10 @@ rules:
   - name: Configs
     extensions: [".json", ".pem", ".key", ".ovpn", ".toml", ".ini", ".cfg"]
     dest: ~/Downloads/Configs
+
+  - name: Screenshots
+    pattern: "Screenshot*"
+    dest: ~/Pictures/Screenshots
 
   - name: Torrents
     extensions: [".torrent"]
