@@ -1,7 +1,9 @@
 package engine
 
 import (
+	"crypto/sha256"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -51,12 +53,25 @@ func Apply(filePath string, rule config.Rule, dryRun bool) error {
 		return nil
 	}
 
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return nil
+	}
+
 	if filepath.Dir(filePath) == rule.Dest {
 		return nil
 	}
 
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		return nil
+	if _, err := os.Stat(destPath); err == nil {
+		duplicate, err := isDuplicate(filePath, destPath)
+		if err != nil {
+			return fmt.Errorf("engine: error comparing files %q and %q: %w", filePath, destPath, err)
+		}
+		if duplicate {
+			fmt.Printf("skipping duplicate: %s\n", filepath.Base(filePath))
+			return nil
+		}
+		destPath = resolveDestPath(rule.Dest, fileName)
+
 	}
 
 	if dryRun {
@@ -83,4 +98,50 @@ func ProcessFile(filePath string, rules []config.Rule, dryRun bool) error {
 		}
 	}
 	return nil
+}
+
+func hashFile(path string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%x", h.Sum(nil)), nil
+}
+
+func isDuplicate(src, dst string) (bool, error) {
+	srcHash, err := hashFile(src)
+	if err != nil {
+		return false, err
+	}
+
+	dstHash, err := hashFile(dst)
+	if err != nil {
+		return false, err
+	}
+
+	return srcHash == dstHash, nil
+}
+
+func resolveDestPath(dir, fileName string) string {
+	destPath := filepath.Join(dir, fileName)
+	if _, err := os.Stat(destPath); os.IsNotExist(err) {
+		return destPath
+	}
+
+	ext := filepath.Ext(fileName)
+	name := strings.TrimSuffix(fileName, ext)
+
+	for i := 1; ; i++ {
+		newPath := filepath.Join(dir, fmt.Sprintf("%s_%d%s", name, i, ext))
+		if _, err := os.Stat(newPath); os.IsNotExist(err) {
+			return newPath
+		}
+	}
 }

@@ -13,6 +13,8 @@ files as they arrive.
 - One-shot organization with `tidy run`
 - Live folder watching with `tidy watch`
 - Safe preview mode with `--dry-run`
+- Safely skips identical duplicate files
+- Automatically renames files with a number suffix on filename collisions
 - YAML config stored by default at `~/.config/tidy/config.yaml`
 - Case-insensitive extension matching
 - Multi-part extension matching such as `.tar.gz`
@@ -59,20 +61,20 @@ Use a custom config when needed:
 
 ## Commands
 
-| Command | What it does |
-| --- | --- |
-| `tidy init` | Writes a starter config unless one already exists |
-| `tidy run` | Organizes existing top-level files in each watched directory |
-| `tidy run --dry-run` | Prints planned moves without changing files |
-| `tidy watch` | Watches configured directories and processes new or renamed files |
-| `tidy watch --dry-run` | Logs what would move while watching |
+| Command                | What it does                                                      |
+| ---------------------- | ----------------------------------------------------------------- |
+| `tidy init`            | Writes a starter config unless one already exists                 |
+| `tidy run`             | Organizes existing top-level files in each watched directory      |
+| `tidy run --dry-run`   | Prints planned moves without changing files                       |
+| `tidy watch`           | Watches configured directories and processes new or renamed files |
+| `tidy watch --dry-run` | Logs what would move while watching                               |
 
 Global flags:
 
-| Flag | Default | Purpose |
-| --- | --- | --- |
-| `--config` | `~/.config/tidy/config.yaml` | Path to the YAML config |
-| `--dry-run` | `false` | Preview moves without touching files |
+| Flag        | Default                      | Purpose                              |
+| ----------- | ---------------------------- | ------------------------------------ |
+| `--config`  | `~/.config/tidy/config.yaml` | Path to the YAML config              |
+| `--dry-run` | `false`                      | Preview moves without touching files |
 
 ## Configuration
 
@@ -103,12 +105,12 @@ rules:
 
 Each rule supports:
 
-| Field | Required | Description |
-| --- | --- | --- |
-| `name` | Recommended | Human-readable rule name used in validation messages |
-| `extensions` | Yes, unless `pattern` is set | File extensions to match, with or without a leading dot |
-| `pattern` | Yes, unless `extensions` is set | Glob pattern matched against the base filename |
-| `dest` | Yes | Destination directory |
+| Field        | Required                        | Description                                             |
+| ------------ | ------------------------------- | ------------------------------------------------------- |
+| `name`       | Recommended                     | Human-readable rule name used in validation messages    |
+| `extensions` | Yes, unless `pattern` is set    | File extensions to match, with or without a leading dot |
+| `pattern`    | Yes, unless `extensions` is set | Glob pattern matched against the base filename          |
+| `dest`       | Yes                             | Destination directory                                   |
 
 Rules are checked in order. The first matching rule wins.
 
@@ -140,7 +142,11 @@ subdirectories. This keeps existing organized folders such as
 `~/Downloads/Documents` or extracted archives from being flattened.
 
 Destination directories are created automatically. If a source file is already
-in its destination folder, it is skipped.
+in its destination folder, it is skipped. If a file with the same name already
+exists in the destination:
+
+- It is skipped completely if the file content hashes are identical.
+- It is automatically renamed with a number suffix (e.g., `file_1.txt`) if the contents differ preventing accidental overwrites.
 
 ## Development
 
@@ -171,10 +177,10 @@ Code layout:
 
 General Make targets:
 
-| Target | Command |
-| --- | --- |
+| Target  | Command                  |
+| ------- | ------------------------ |
 | `build` | Builds the `tidy` binary |
-| `test` | Runs `go test -v ./...` |
+| `test`  | Runs `go test -v ./...`  |
 
 ### Linux User Service Helpers
 
@@ -189,9 +195,9 @@ These targets assume:
 - A matching user service named `tidy` is already installed and enabled, for
   example `~/.config/systemd/user/tidy.service`
 
-| Target | Command |
-| --- | --- |
-| `install` | Builds `tidy`, moves it to `/usr/local/bin/tidy`, reloads user systemd, and restarts `tidy.service` |
-| `logs` | Follows logs for the user service with `journalctl --user -u tidy -f` |
-| `status` | Shows `systemctl --user status tidy` |
-| `uninstall` | Stops/disables the user service and removes `/usr/local/bin/tidy` |
+| Target      | Command                                                                                             |
+| ----------- | --------------------------------------------------------------------------------------------------- |
+| `install`   | Builds `tidy`, moves it to `/usr/local/bin/tidy`, reloads user systemd, and restarts `tidy.service` |
+| `logs`      | Follows logs for the user service with `journalctl --user -u tidy -f`                               |
+| `status`    | Shows `systemctl --user status tidy`                                                                |
+| `uninstall` | Stops/disables the user service and removes `/usr/local/bin/tidy`                                   |
