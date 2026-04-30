@@ -31,6 +31,8 @@ jobs:
     needs: build
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v6
       - name: Set up Go
@@ -49,7 +51,7 @@ jobs:
         with:
           tag_name: latest
           name: Latest build
-          overwrite: true
+          overwrite_files: true
           files: |
             tidy-linux-amd64
             tidy-windows-amd64.exe
