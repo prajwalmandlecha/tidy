@@ -21,11 +21,22 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Build
-        run: go build -v ./...
+      - name: Check formatting
+        run: |
+          files="$(gofmt -l .)"
+          if [ -n "$files" ]; then
+            echo "$files"
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
 
       - name: Test
         run: go test -v ./...
+
+      - name: Build
+        run: go build -v ./...
 
   release:
     needs: build
@@ -51,6 +62,8 @@ jobs:
         with:
           tag_name: latest
           name: Latest build
+          body: Automatically generated from the latest push to main. This is not a stable versioned release.
+          prerelease: true
           overwrite_files: true
           files: |
             tidy-linux-amd64

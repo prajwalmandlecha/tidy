@@ -155,6 +155,13 @@ exists in the destination:
 Linux users who want `tidy` to run in the background can create a user service
 at `~/.config/systemd/user/tidy.service`:
 
+Build and install the binary first:
+
+```sh
+go build -o tidy .
+sudo install -m 0755 tidy /usr/local/bin/tidy
+```
+
 ```ini
 [Unit]
 Description=Tidy - automatic folder organizer
