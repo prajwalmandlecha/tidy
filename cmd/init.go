@@ -13,44 +13,23 @@ import (
 
 const starterConfig = `watch_dirs:
   - ~/Downloads
-  - ~/Pictures
 
 rules:
   - name: Documents
-    extensions: [".pdf", ".doc", ".docx", ".txt", ".rtf", ".odt", ".md", ".csv", ".xls", ".xlsx", ".ppt", ".pptx"]
+    extensions: [".pdf", ".doc", ".docx", ".txt", ".md", ".csv"]
     dest: ~/Downloads/Documents
+
+  - name: Screenshots
+    pattern: "Screenshot*"
+    dest: ~/Downloads/Images/Screenshots
 
   - name: Images
     extensions: [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"]
     dest: ~/Downloads/Images
 
-  - name: Video
-    extensions: [".mp4", ".mkv", ".mov", ".avi", ".webm", ".m4v"]
-    dest: ~/Downloads/Video
-
-  - name: Audio
-    extensions: [".mp3", ".wav", ".flac", ".aac", ".ogg", ".m4a"]
-    dest: ~/Downloads/Music
-
   - name: Archives
-    extensions: [".zip", ".rar", ".7z", ".tar", ".tar.gz", ".tgz", ".gz", ".bz2", ".xz"]
+    extensions: [".zip", ".rar", ".7z", ".tar", ".tar.gz", ".tgz"]
     dest: ~/Downloads/Compressed
-
-  - name: Programs
-    extensions: [".exe", ".msi", ".deb", ".rpm", ".dmg", ".pkg", ".apk", ".appimage", ".jar"]
-    dest: ~/Downloads/Programs
-
-  - name: Code
-    extensions: [".ipynb", ".html", ".css", ".js", ".ts", ".tsx", ".jsx", ".go", ".py", ".java", ".c", ".cpp", ".h", ".hpp", ".yaml", ".yml", ".xml", ".skill"]
-    dest: ~/Downloads/Code
-
-  - name: Configs
-    extensions: [".json", ".pem", ".key", ".ovpn", ".toml", ".ini", ".cfg"]
-    dest: ~/Downloads/Configs
-
-  - name: Screenshots
-    pattern: "Screenshot*"
-    dest: ~/Pictures/Screenshots
 
   - name: Torrents
     extensions: [".torrent"]

@@ -1,9 +1,6 @@
 # tidy
 
 `tidy` is a small Go CLI that keeps folders organized with simple YAML rules.
-It is currently tuned for an IDM-style `~/Downloads` workflow: documents,
-images, videos, archives, programs, code, configs, torrents, and similar files
-can be moved into predictable buckets inside `~/Downloads`.
 
 The tool can run once over existing files, or watch a folder and organize new
 files as they arrive.
@@ -90,6 +87,10 @@ rules:
     extensions: [".pdf", ".doc", ".docx", ".txt", ".md", ".csv"]
     dest: ~/Downloads/Documents
 
+  - name: Screenshots
+    pattern: "Screenshot*"
+    dest: ~/Downloads/Images/Screenshots
+
   - name: Images
     extensions: [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"]
     dest: ~/Downloads/Images
@@ -146,7 +147,59 @@ in its destination folder, it is skipped. If a file with the same name already
 exists in the destination:
 
 - It is skipped completely if the file content hashes are identical.
-- It is automatically renamed with a number suffix (e.g., `file_1.txt`) if the contents differ preventing accidental overwrites.
+- It is automatically renamed with a number suffix (e.g., `file_1.txt`) if the
+  contents differ, preventing accidental overwrites.
+
+## Linux Systemd User Service
+
+Linux users who want `tidy` to run in the background can create a user service
+at `~/.config/systemd/user/tidy.service`:
+
+```ini
+[Unit]
+Description=Tidy - automatic folder organizer
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/tidy watch
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=default.target
+```
+
+This uses the default config path, `~/.config/tidy/config.yaml`. For a custom
+config file, pass `--config` before `watch`:
+
+```ini
+ExecStart=/usr/local/bin/tidy --config /path/to/config.yaml watch
+```
+
+Reload systemd and enable the service:
+
+```sh
+systemctl --user daemon-reload
+systemctl --user enable --now tidy.service
+```
+
+`enable --now` starts the service immediately and enables it to start
+automatically in future user sessions.
+
+Restart or disable the service when needed:
+
+```sh
+systemctl --user restart tidy.service
+systemctl --user disable --now tidy.service
+```
+
+Remove the service file completely:
+
+```sh
+rm ~/.config/systemd/user/tidy.service
+systemctl --user daemon-reload
+```
 
 ## Development
 
@@ -159,7 +212,7 @@ go test ./...
 Build:
 
 ```sh
-make build
+go build -o tidy .
 ```
 
 Code layout:
@@ -174,30 +227,3 @@ Code layout:
 |-- go.mod
 `-- main.go
 ```
-
-General Make targets:
-
-| Target  | Command                  |
-| ------- | ------------------------ |
-| `build` | Builds the `tidy` binary |
-| `test`  | Runs `go test -v ./...`  |
-
-### Linux User Service Helpers
-
-The Makefile also includes convenience targets for running `tidy` as a Linux
-user service through systemd. These are optional; use the normal CLI commands
-above if you just want to run `tidy` manually.
-
-These targets assume:
-
-- Linux with systemd
-- `sudo` access for installing/removing `/usr/local/bin/tidy`
-- A matching user service named `tidy` is already installed and enabled, for
-  example `~/.config/systemd/user/tidy.service`
-
-| Target      | Command                                                                                             |
-| ----------- | --------------------------------------------------------------------------------------------------- |
-| `install`   | Builds `tidy`, moves it to `/usr/local/bin/tidy`, reloads user systemd, and restarts `tidy.service` |
-| `logs`      | Follows logs for the user service with `journalctl --user -u tidy -f`                               |
-| `status`    | Shows `systemctl --user status tidy`                                                                |
-| `uninstall` | Stops/disables the user service and removes `/usr/local/bin/tidy`                                   |
