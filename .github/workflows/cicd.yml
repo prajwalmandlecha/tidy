@@ -57,7 +57,7 @@ jobs:
           GOOS=windows GOARCH=amd64 go build -o tidy-windows-amd64.exe .
           GOOS=darwin  GOARCH=amd64 go build -o tidy-darwin-amd64 .
 
-      - name: Create Github Release
+      - name: Create Github PreRelease
         uses: softprops/action-gh-release@v3
         with:
           tag_name: test

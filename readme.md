@@ -32,6 +32,12 @@ Create the starter config:
 ./tidy init
 ```
 
+Validate the config:
+
+```sh
+./tidy validate
+```
+
 Preview what would move:
 
 ```sh
@@ -61,6 +67,7 @@ Use a custom config when needed:
 | Command                | What it does                                                      |
 | ---------------------- | ----------------------------------------------------------------- |
 | `tidy init`            | Writes a starter config unless one already exists                 |
+| `tidy validate`        | Checks config syntax, watched folders, and rule paths             |
 | `tidy run`             | Organizes existing top-level files in each watched directory      |
 | `tidy run --dry-run`   | Prints planned moves without changing files                       |
 | `tidy watch`           | Watches configured directories and processes new or renamed files |
@@ -226,7 +233,7 @@ Code layout:
 
 ```text
 .
-|-- cmd/       # Cobra commands: init, run, watch
+|-- cmd/       # Cobra commands: init, validate, run, watch
 |-- config/    # YAML loading, path expansion, validation
 |-- engine/    # Rule matching and file moves
 |-- watcher/   # fsnotify integration with debounce

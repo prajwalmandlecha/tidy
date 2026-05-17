@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -45,7 +44,7 @@ func Load(path string) (*Config, error) {
 		return nil, err
 	}
 
-	err = cfg.validate()
+	err = cfg.Validate()
 	if err != nil {
 		return nil, err
 	}
@@ -81,20 +80,5 @@ func (cfg *Config) expand() error {
 		cfg.Rules[i].Dest = expanded
 	}
 
-	return nil
-}
-
-func (c *Config) validate() error {
-	if len(c.WatchDirs) == 0 {
-		return errors.New("config: no watch_dirs specified")
-	}
-	for _, rule := range c.Rules {
-		if rule.Dest == "" {
-			return fmt.Errorf("config: rule %q has no dest", rule.Name)
-		}
-		if len(rule.Extensions) == 0 && rule.Pattern == "" {
-			return fmt.Errorf("config: rule %q has no extensions or pattern", rule.Name)
-		}
-	}
 	return nil
 }

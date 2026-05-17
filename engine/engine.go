@@ -116,6 +116,17 @@ func hashFile(path string) (string, error) {
 }
 
 func isDuplicate(src, dst string) (bool, error) {
+	srcInfo, err := os.Stat(src)
+	if err != nil {
+		return false, err
+	}
+	dstInfo, err := os.Stat(dst)
+	if err != nil {
+		return false, err
+	}
+	if srcInfo.Size() != dstInfo.Size() {
+		return false, nil
+	}
 	srcHash, err := hashFile(src)
 	if err != nil {
 		return false, err
