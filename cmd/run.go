@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/prajwalmandlecha/tidy/config"
 	"github.com/prajwalmandlecha/tidy/engine"
+	"github.com/prajwalmandlecha/tidy/history"
 	"github.com/spf13/cobra"
 )
 
@@ -36,8 +38,31 @@ var runCmd = &cobra.Command{
 				}
 
 				path := filepath.Join(dir, entry.Name())
-				if err := engine.ProcessFile(path, cfg.Rules, dryRun); err != nil {
+				res, err := engine.ProcessFile(path, cfg.Rules, dryRun)
+				if err != nil {
 					fmt.Printf("error processing %q: %v\n", path, err)
+					continue
+				}
+
+				if res == nil || dryRun {
+					continue
+				}
+
+				historyPath, err := history.DefaultPath()
+				if err != nil {
+					fmt.Printf("error getting history path: %v\n", err)
+					continue
+				}
+
+				err = history.Append(historyPath, history.Record{
+					Source:      res.Source,
+					Destination: res.Destination,
+					Rule:        res.Rule,
+					Action:      string(res.Action),
+					Timestamp:   time.Now(),
+				})
+				if err != nil {
+					fmt.Printf("error writing history: %v\n", err)
 				}
 			}
 		}

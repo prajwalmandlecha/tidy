@@ -9,6 +9,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/prajwalmandlecha/tidy/config"
 	"github.com/prajwalmandlecha/tidy/engine"
+	"github.com/prajwalmandlecha/tidy/history"
 )
 
 const debounceDelay = 300 * time.Millisecond
@@ -56,8 +57,31 @@ func Watch(ctx context.Context, cfg *config.Config, dryRun bool) error {
 					delete(timer, filePath)
 					mu.Unlock()
 
-					if err := engine.ProcessFile(filePath, cfg.Rules, dryRun); err != nil {
+					res, err := engine.ProcessFile(filePath, cfg.Rules, dryRun)
+					if err != nil {
 						fmt.Printf("error processing %q: %v\n", filePath, err)
+						return
+					}
+
+					if res == nil || dryRun {
+						return
+					}
+
+					historyPath, err := history.DefaultPath()
+					if err != nil {
+						fmt.Printf("error getting history path: %v\n", err)
+						return
+					}
+
+					err = history.Append(historyPath, history.Record{
+						Source:      res.Source,
+						Destination: res.Destination,
+						Rule:        res.Rule,
+						Action:      string(res.Action),
+						Timestamp:   time.Now(),
+					})
+					if err != nil {
+						fmt.Printf("error writing history: %v\n", err)
 					}
 				})
 			}
