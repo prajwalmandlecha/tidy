@@ -42,7 +42,9 @@ func Watch(ctx context.Context, cfg *config.Config, dryRun bool) error {
 			if !ok {
 				return nil
 			}
-			if !event.Has(fsnotify.Create) && !event.Has(fsnotify.Rename) {
+			if !event.Has(fsnotify.Create) &&
+				!event.Has(fsnotify.Rename) &&
+				!event.Has(fsnotify.Write) {
 				continue
 			}
 			filePath := event.Name
