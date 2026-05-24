@@ -10,6 +10,11 @@ import (
 	"time"
 )
 
+type Entry struct {
+	ID     int
+	Record Record
+}
+
 type Record struct {
 	Source      string    `json:"source"`
 	Destination string    `json:"destination"`
@@ -18,20 +23,7 @@ type Record struct {
 	Timestamp   time.Time `json:"timestamp"`
 }
 
-func PrintHistory(path string) error {
-	records, err := ReadAll(path)
-	if err != nil {
-		return fmt.Errorf("history: could not read history: %w", err)
-	}
-
-	for _, record := range records {
-		fmt.Printf("%s: %s -> %s (rule: %s, action: %s)\n",
-			record.Timestamp.Format("2006-01-02 15:04:05"), record.Source, record.Destination, record.Rule, record.Action)
-	}
-	return nil
-}
-
-func ReadAll(path string) ([]Record, error) {
+func ReadEntries(path string) ([]Entry, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -41,9 +33,9 @@ func ReadAll(path string) ([]Record, error) {
 	}
 	defer file.Close()
 
-	records := []Record{}
+	entries := []Entry{}
 	decoder := json.NewDecoder(file)
-
+	id := 1
 	for {
 		record := Record{}
 		err := decoder.Decode(&record)
@@ -54,22 +46,54 @@ func ReadAll(path string) ([]Record, error) {
 
 			return nil, fmt.Errorf("history: could not decode record: %w", err)
 		}
-		records = append(records, record)
-
+		entries = append(entries, Entry{ID: id, Record: record})
+		id++
 	}
-	return records, nil
+	return entries, nil
 }
 
 func Last(path string) (Record, bool, error) {
-	records, err := ReadAll(path)
+	entries, err := ReadEntries(path)
 	if err != nil {
 		return Record{}, false, fmt.Errorf("history: could not get record: %w", err)
 	}
-	if len(records) == 0 {
+	if len(entries) == 0 {
 		return Record{}, false, nil
 	}
 
-	return records[len(records)-1], true, nil
+	return entries[len(entries)-1].Record, true, nil
+}
+
+func Latest(path string, limit int) ([]Entry, error) {
+	entries, err := ReadEntries(path)
+	if err != nil {
+		return nil, fmt.Errorf("history: could not get records: %w", err)
+	}
+	if len(entries) == 0 {
+		return nil, nil
+	}
+	if limit <= 0 {
+		return nil, nil
+	}
+
+	if limit > len(entries) {
+		limit = len(entries)
+	}
+
+	return entries[len(entries)-limit:], nil
+}
+
+func Find(path string, id int) (Entry, bool, error) {
+	entries, err := ReadEntries(path)
+	if err != nil {
+		return Entry{}, false, fmt.Errorf("history: could not get records: %w", err)
+	}
+	for _, entry := range entries {
+		if entry.ID == id {
+			return entry, true, nil
+		}
+	}
+	return Entry{}, false, nil
 }
 
 func Append(path string, record Record) error {
