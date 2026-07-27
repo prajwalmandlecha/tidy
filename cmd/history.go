@@ -5,6 +5,8 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"text/tabwriter"
 
 	"github.com/prajwalmandlecha/tidy/history"
 	"github.com/spf13/cobra"
@@ -18,25 +20,34 @@ var historyCmd = &cobra.Command{
 	Short: "Show the history of actions",
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		historyPath, err := history.DefaultPath()
+		db, err := history.NewDB()
 		if err != nil {
-			return fmt.Errorf("history: could not get default path: %w", err)
+			return fmt.Errorf("history: could not open database: %w", err)
 		}
-		entries, err := history.Latest(historyPath, historyLimit)
+		defer db.Close()
+
+		moves, err := db.Latest(historyLimit)
 		if err != nil {
 			return fmt.Errorf("history: could not read history: %w", err)
 		}
-		if len(entries) == 0 {
+		if len(moves) == 0 {
 			fmt.Println("No history entries found.")
 			return nil
 		}
 
-		for _, entry := range entries {
-			id := entry.ID
-			record := entry.Record
-			fmt.Printf("%d: %s -> %s (rule: %s, action: %s)\n",
-				id, record.Source, record.Destination, record.Rule, record.Action)
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+		fmt.Fprintln(w, "ID\tTIMESTAMP\tRULE\tACTION\tSTATUS\tMOVE")
+
+		for _, m := range moves {
+			status := "OK"
+			if m.UndoneAt != nil {
+				status = "UNDONE"
+			}
+			ts := m.MovedAt.Local().Format("2006-01-02 15:04:05")
+			fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%s\t%s -> %s\n",
+				m.ID, ts, m.Rule, m.Action, status, m.Source, m.Destination)
 		}
+		w.Flush()
 		return nil
 	},
 }

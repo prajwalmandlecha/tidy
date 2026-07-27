@@ -11,6 +11,7 @@ import (
 
 type Config struct {
 	WatchDirs []string `yaml:"watch_dirs"`
+	Ignore    []string `yaml:"ignore,omitempty"`
 	Rules     []Rule   `yaml:"rules"`
 }
 

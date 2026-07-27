@@ -38,6 +38,17 @@ func (c *Config) Validate() error {
 		}
 	}
 
+	for _, pattern := range c.Ignore {
+		pattern = strings.TrimSpace(pattern)
+		if pattern == "" {
+			continue
+		}
+		_, err := filepath.Match(pattern, "test")
+		if err != nil {
+			errs = append(errs, fmt.Errorf("config: invalid ignore pattern %q: %w", pattern, err))
+		}
+	}
+
 	seenRuleNames := make(map[string]bool)
 
 	for _, rule := range c.Rules {

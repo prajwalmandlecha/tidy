@@ -6,6 +6,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/prajwalmandlecha/tidy/history"
 	"github.com/spf13/cobra"
@@ -18,59 +19,63 @@ var undoCmd = &cobra.Command{
 	Use:   "undo",
 	Short: "Undo a recorded move",
 	RunE: func(cmd *cobra.Command, args []string) error {
-
-		historyPath, err := history.DefaultPath()
+		db, err := history.NewDB()
 		if err != nil {
-			return fmt.Errorf("could not get history path: %w", err)
+			return fmt.Errorf("could not open history database: %w", err)
 		}
+		defer db.Close()
 
-		var record history.Record
+		var targetMove history.Move
 
 		if undoID > 0 {
-			entry, found, err := history.Find(historyPath, undoID)
+			move, found, err := db.FindPending(int64(undoID))
 			if err != nil {
-				return fmt.Errorf("could not get the record: %w", err)
+				return fmt.Errorf("could not get move record: %w", err)
 			}
 			if !found {
-				fmt.Printf("No history entry found with ID %d.\n", undoID)
+				fmt.Printf("No pending move entry found with ID %d.\n", undoID)
 				return nil
 			}
-			record = entry.Record
+			targetMove = move
 		} else {
-			lastRecord, found, err := history.Last(historyPath)
+			pending, err := db.Pending(1)
 			if err != nil {
-				return fmt.Errorf("could not get last record: %w", err)
+				return fmt.Errorf("could not get pending moves: %w", err)
 			}
-			if !found {
+			if len(pending) == 0 {
 				fmt.Println("No actions to undo.")
 				return nil
 			}
-			record = lastRecord
+			targetMove = pending[0]
 		}
 
-		_, err = os.Stat(record.Source)
+		_, err = os.Stat(targetMove.Source)
 		if err == nil {
-			return fmt.Errorf("source file %q already exists, cannot undo last action", record.Source)
+			return fmt.Errorf("source file %q already exists, cannot undo action", targetMove.Source)
 		} else if !os.IsNotExist(err) {
-			return fmt.Errorf("could not check source path %q: %w", record.Source, err)
+			return fmt.Errorf("could not check source path %q: %w", targetMove.Source, err)
 		}
 
-		_, err = os.Stat(record.Destination)
+		_, err = os.Stat(targetMove.Destination)
 		if err != nil {
-			return fmt.Errorf("could not find file to restore %q: %w", record.Destination, err)
+			return fmt.Errorf("could not find file to restore %q: %w", targetMove.Destination, err)
 		}
 
 		if dryRun {
-			fmt.Printf("[dry-run] would move %q back to %q\n", record.Destination, record.Source)
+			fmt.Printf("[dry-run] would move %q back to %q\n", targetMove.Destination, targetMove.Source)
 			return nil
 		}
 
-		err = os.Rename(record.Destination, record.Source)
+		err = os.Rename(targetMove.Destination, targetMove.Source)
 		if err != nil {
-			return fmt.Errorf("could not undo last action: %w", err)
+			return fmt.Errorf("could not undo action: %w", err)
 		}
 
-		fmt.Printf("Undid last action: moved %q back to %q\n", record.Destination, record.Source)
+		if err := db.MarkUndone(targetMove.ID, time.Now()); err != nil {
+			return fmt.Errorf("could not mark move as undone in database: %w", err)
+		}
+
+		fmt.Printf("Undid action (ID %d): moved %q back to %q\n", targetMove.ID, targetMove.Destination, targetMove.Source)
 		return nil
 	},
 }

@@ -111,7 +111,26 @@ func matchesExtension(filePath string, extensions []string) bool {
 	return false
 }
 
-func ProcessFile(filePath string, rules []config.Rule, dryRun bool) (*MoveResult, error) {
+func IsIgnored(filePath string, ignorePatterns []string) bool {
+	fileName := filepath.Base(filePath)
+	for _, pattern := range ignorePatterns {
+		pattern = strings.TrimSpace(pattern)
+		if pattern == "" {
+			continue
+		}
+		matched, err := filepath.Match(pattern, fileName)
+		if err == nil && matched {
+			return true
+		}
+	}
+	return false
+}
+
+func ProcessFile(filePath string, ignorePatterns []string, rules []config.Rule, dryRun bool) (*MoveResult, error) {
+	if IsIgnored(filePath, ignorePatterns) {
+		return nil, nil
+	}
+
 	for _, rule := range rules {
 		matches := Matches(filePath, rule)
 		if matches {

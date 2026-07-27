@@ -15,6 +15,12 @@ import (
 const debounceDelay = 300 * time.Millisecond
 
 func Watch(ctx context.Context, cfg *config.Config, dryRun bool) error {
+	db, err := history.NewDB()
+	if err != nil {
+		return fmt.Errorf("watcher: failed to open history database: %w", err)
+	}
+	defer db.Close()
+
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return fmt.Errorf("watcher: failed to create: %w", err)
@@ -48,6 +54,9 @@ func Watch(ctx context.Context, cfg *config.Config, dryRun bool) error {
 				continue
 			}
 			filePath := event.Name
+			if engine.IsIgnored(filePath, cfg.Ignore) {
+				continue
+			}
 
 			mu.Lock()
 			if t, exists := timer[filePath]; exists {
@@ -59,7 +68,7 @@ func Watch(ctx context.Context, cfg *config.Config, dryRun bool) error {
 					delete(timer, filePath)
 					mu.Unlock()
 
-					res, err := engine.ProcessFile(filePath, cfg.Rules, dryRun)
+					res, err := engine.ProcessFile(filePath, cfg.Ignore, cfg.Rules, dryRun)
 					if err != nil {
 						fmt.Printf("error processing %q: %v\n", filePath, err)
 						return
@@ -69,18 +78,12 @@ func Watch(ctx context.Context, cfg *config.Config, dryRun bool) error {
 						return
 					}
 
-					historyPath, err := history.DefaultPath()
-					if err != nil {
-						fmt.Printf("error getting history path: %v\n", err)
-						return
-					}
-
-					err = history.Append(historyPath, history.Record{
+					_, err = db.Append(history.Move{
 						Source:      res.Source,
 						Destination: res.Destination,
 						Rule:        res.Rule,
 						Action:      string(res.Action),
-						Timestamp:   time.Now(),
+						MovedAt:     time.Now(),
 					})
 					if err != nil {
 						fmt.Printf("error writing history: %v\n", err)

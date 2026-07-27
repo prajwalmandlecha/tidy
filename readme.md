@@ -9,7 +9,11 @@ files as they arrive.
 
 - One-shot organization with `tidy run`
 - Live folder watching with `tidy watch`
+- View move action history with `tidy history`
+- Revert file moves with `tidy undo`
+- Ignore temporary files (`*.crdownload`, `*.part`, `.DS_Store`, etc.)
 - Safe preview mode with `--dry-run`
+- SQLite history logging stored at `~/.local/state/tidy/history.db`
 - Safely skips identical duplicate files
 - Automatically renames files with a number suffix on filename collisions
 - YAML config stored by default at `~/.config/tidy/config.yaml`
@@ -56,6 +60,18 @@ Watch for new files:
 ./tidy watch
 ```
 
+View move history:
+
+```sh
+./tidy history
+```
+
+Undo the last action (or undo a specific ID with `--id 5`):
+
+```sh
+./tidy undo
+```
+
 Use a custom config when needed:
 
 ```sh
@@ -72,6 +88,8 @@ Use a custom config when needed:
 | `tidy run --dry-run`   | Prints planned moves without changing files                       |
 | `tidy watch`           | Watches configured directories and processes new or renamed files |
 | `tidy watch --dry-run` | Logs what would move while watching                               |
+| `tidy history`         | Shows recent file move history in a formatted table               |
+| `tidy undo`            | Undoes the last recorded file move (or specific move via `--id`)  |
 
 Global flags:
 
@@ -83,11 +101,19 @@ Global flags:
 ## Configuration
 
 The default config watches `~/Downloads` and moves files into buckets inside
-that same directory.
+that same directory, while ignoring in-progress download files.
 
 ```yaml
 watch_dirs:
   - ~/Downloads
+
+ignore:
+  - "*.crdownload"
+  - "*.part"
+  - "*.tmp"
+  - ".DS_Store"
+  - "desktop.ini"
+  - "*.download"
 
 rules:
   - name: Documents
@@ -110,6 +136,14 @@ rules:
     extensions: [".torrent"]
     dest: ~/Downloads/Torrents
 ```
+
+Top-level configuration keys:
+
+| Field        | Description                                                             |
+| ------------ | ----------------------------------------------------------------------- |
+| `watch_dirs` | Directories to monitor/scan                                             |
+| `ignore`     | Glob patterns of temporary or partial files to ignore during organizing |
+| `rules`      | List of sorting rules evaluated in order                                |
 
 Each rule supports:
 
@@ -136,6 +170,15 @@ rules:
     pattern: "Screenshot*"
     dest: ~/Downloads/Images/Screenshots
 ```
+
+## History & Undo
+
+`tidy` maintains a SQLite database of all file movements at:
+`~/.local/state/tidy/history.db`
+
+- **View logs**: Run `tidy history` to see a table of moved files and their undone status.
+- **Undo last action**: Run `tidy undo` to move the file back to its original location.
+- **Undo specific ID**: Run `tidy undo --id <ID>` to undo a specific move.
 
 ## Safety Notes
 
@@ -233,11 +276,13 @@ Code layout:
 
 ```text
 .
-|-- cmd/       # Cobra commands: init, validate, run, watch
+|-- cmd/       # Cobra commands: init, validate, run, watch, history, undo
 |-- config/    # YAML loading, path expansion, validation
-|-- engine/    # Rule matching and file moves
+|-- engine/    # Rule matching, duplicate checks, file moves
+|-- history/   # SQLite database operations and Move model
 |-- watcher/   # fsnotify integration with debounce
 |-- config.yaml
 |-- go.mod
 `-- main.go
 ```
+

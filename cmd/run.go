@@ -25,6 +25,12 @@ var runCmd = &cobra.Command{
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 
+		db, err := history.NewDB()
+		if err != nil {
+			return fmt.Errorf("failed to open history database: %w", err)
+		}
+		defer db.Close()
+
 		for _, dir := range cfg.WatchDirs {
 			entries, err := os.ReadDir(dir)
 			if err != nil {
@@ -38,7 +44,7 @@ var runCmd = &cobra.Command{
 				}
 
 				path := filepath.Join(dir, entry.Name())
-				res, err := engine.ProcessFile(path, cfg.Rules, dryRun)
+				res, err := engine.ProcessFile(path, cfg.Ignore, cfg.Rules, dryRun)
 				if err != nil {
 					fmt.Printf("error processing %q: %v\n", path, err)
 					continue
@@ -48,18 +54,12 @@ var runCmd = &cobra.Command{
 					continue
 				}
 
-				historyPath, err := history.DefaultPath()
-				if err != nil {
-					fmt.Printf("error getting history path: %v\n", err)
-					continue
-				}
-
-				err = history.Append(historyPath, history.Record{
+				_, err = db.Append(history.Move{
 					Source:      res.Source,
 					Destination: res.Destination,
 					Rule:        res.Rule,
 					Action:      string(res.Action),
-					Timestamp:   time.Now(),
+					MovedAt:     time.Now(),
 				})
 				if err != nil {
 					fmt.Printf("error writing history: %v\n", err)

@@ -48,3 +48,24 @@ func TestMatches(t *testing.T) {
 		})
 	}
 }
+
+func TestIsIgnored(t *testing.T) {
+	ignores := []string{"*.crdownload", "*.part", ".DS_Store"}
+
+	tests := []struct {
+		path string
+		want bool
+	}{
+		{"/downloads/ubuntu.iso.crdownload", true},
+		{"/downloads/movie.mkv.part", true},
+		{"/downloads/.DS_Store", true},
+		{"/downloads/report.pdf", false},
+	}
+
+	for _, tt := range tests {
+		got := IsIgnored(tt.path, ignores)
+		if got != tt.want {
+			t.Errorf("IsIgnored(%q) = %v; want %v", tt.path, got, tt.want)
+		}
+	}
+}

@@ -14,6 +14,14 @@ import (
 const starterConfig = `watch_dirs:
   - ~/Downloads
 
+ignore:
+  - "*.crdownload"
+  - "*.part"
+  - "*.tmp"
+  - ".DS_Store"
+  - "desktop.ini"
+  - "*.download"
+
 rules:
   - name: Documents
     extensions: [".pdf", ".doc", ".docx", ".txt", ".md", ".csv"]
